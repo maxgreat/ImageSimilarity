@@ -91,6 +91,7 @@ class TripletDataset(flickDataset):
 
 
 if __name__ == "__main__":
+    print('Test flicker dataset')
     dataset = flickDataset("/data/flickr30k/results_20130124.token")
     print("Nb images : ", len(dataset.imList))
     print("Nb captions :", dataset.countCaptions())

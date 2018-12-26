@@ -16,6 +16,8 @@ import numpy as np
 
 from utils.loss import EuclideanLoss, CosineLoss, EuclideanTriple
 
+from tensorboardX import SummaryWriter
+
 
 
 def testModel(model, dataloader, batchSize, vocab):
@@ -90,7 +92,9 @@ def trainTriplet(model, save_output, nbepoch, batchSize, learningrate, vocab, da
 
     #model = nn.DataParallel(model)
     #score=0
+    writer = SummaryWriter()
     score = testModel(model, dataloaderTest, batchSize, vocab)
+    writer.add_scalar('data/score', score, 0)
     for epoch in range(nbepoch):
         print("Epoch ", epoch, "/", nbepoch)
         for b, batch in enumerate(dataloader):
@@ -128,13 +132,15 @@ def trainTriplet(model, save_output, nbepoch, batchSize, learningrate, vocab, da
                 optimizer.step()
 
                 running_loss += loss.data[0]
-
+		
             if b % 10 == 9: # print every 10 mini-batches
+                writer.add_scalar('data/loss', running_loss, b+(epoch*len(dataset)))
                 print('[%d, %5d] loss: %.3f' % (epoch+1, b+1, running_loss / 20))
                 running_loss = 0.0
 
         torch.save(model, save_output+'tripletLast.save')
         nScore = testModel(model, dataloaderTest, batchSize, vocab)
+        writer.add_scalar('data/score', score, epoch*len(dataset))
         if nScore > score :
             score = nScore
             print('Saving best model')
@@ -143,24 +149,20 @@ def trainTriplet(model, save_output, nbepoch, batchSize, learningrate, vocab, da
 
 
 def train(model, save_output, nbepoch, batchSize, learningrate, vocab, datasetFile, datasetDir):
+
+    #define train dataset and dataloader
     dataset = flickDataset(datasetFile, datasetDir)
     dataloader = DataLoader(dataset=dataset, batch_size=batchSize,
                         shuffle=True, num_workers=multiprocessing.cpu_count(), drop_last=True)
+    
+    #define test dataset
     datasetTest = flickDataset("/data/flickr30k/test.tokens", proba_neg=0)
     dataloaderTest = DataLoader(dataset=datasetTest, batch_size=batchSize,
                         shuffle=False, num_workers=multiprocessing.cpu_count(), drop_last=False)
     model = model.cuda()
-    #criterion = nn.CosineEmbeddingLoss(margin=0.5)
-    criterion=EuclideanLoss().cuda()
-    #
-    # optimizer=optim.SGD([
-    #                 {
-    #                 'params': model.net2.gru.parameters(),
-    #                     },
-    #                 {'params': model.net1.module.parameters(), 'params':model.net2.embedding.parameters(), 'lr': 0.0}
-    #             ], lr=learningrate)
-    #
-    #
+
+    criterion=EuclideanLoss(0.5).cuda()
+    #criterion=CosineLoss(0.5).cuda()
 
     optimizer=optim.Adam([
                     {
@@ -171,24 +173,14 @@ def train(model, save_output, nbepoch, batchSize, learningrate, vocab, datasetFi
                     'params':model.net2.module.embedding.parameters(), 'lr': 0.0001}
                 ], lr=0.0005)
 
-
-    #
-    # optimizer=optim.SGD([
-    #             {'params': model.net1.module.parameters(),
-    #             'params': model.net2.parameters(),
-    #                 }
-    #         ], lr=learningrate)
-
-    #
-    # optimizer=optim.Adam(
-    #                 [{'params': model.parameters()}], lr=0.0001)
-
     model = model.train()
     running_loss = 0
 
     #model = nn.DataParallel(model)
     score=0
-    #score = testModel(model, dataloaderTest, batchSize, vocab)
+    writer = SummaryWriter()
+    score = testModel(model, dataloaderTest, batchSize, vocab)
+    writer.add_scalar('data/score', score, 0)
     for epoch in range(nbepoch):
         print("Epoch ", epoch, "/", nbepoch)
         for b, batch in enumerate(dataloader):
@@ -220,11 +212,13 @@ def train(model, save_output, nbepoch, batchSize, learningrate, vocab, datasetFi
 
             running_loss += loss.data[0]
             if b % 10 == 9: # print every 10 mini-batches
+                writer.add_scalar('data/loss', running_loss, b+(epoch*len(dataset)))
                 print('[%d, %5d] loss: %.3f' % (epoch+1, b+1, running_loss / 20))
                 running_loss = 0.0
 
         torch.save(model, save_output+'last.save')
         nScore = testModel(model, dataloaderTest, batchSize, vocab)
+        writer.add_scalar('data/score', score, epoch*len(dataset))
         if nScore > score :
             score = nScore
             print('Saving best model')
