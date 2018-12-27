@@ -39,25 +39,40 @@ def readAnnotation(filename):
                 annot[name].append(annotation)
             else:
                 annot[name] = [annotation]
+                
 
 class AnnotatedImageDataset(torch.utils.data.Dataset):
     """
-        Annotation must be :
-            imageName#<imageNumber><\t><list of int>
+        Annotation file must be :
+            imageName<#imageNumber> <\t> <list of int>
+            
+        getitem returns :
+        	the open image, 
+        	one random caption,
+        	1 image the caption correspond to the image, -1 otherwise
+        	
+       	The probability to get negative caption is given by p (default 0.5)
+        	
     """
-    def __init__(self, filename, baseDir='./', transform=transforms.ToTensor()):
+    def __init__(self, filename, baseDir='./', maxLength=20, p=0.5, transform=transforms.ToTensor()):
         self.transform = transform
         self.imagesList = set()
         self.annotations = {}
         self.baseDir = baseDir
         self.readFile(filename)
         self.imagesList = list(self.imagesList)
+        self.p = p
+        
     def readFile(self, filename):
         with open(filename) as f:
             for l in f:
                 imageName, listVal = l.split('\t')
-                imageName, imageNumber = imageName.split('#')
+                
+                if '#' in imageName:
+                	imageName, imageNumber = imageName.split('#')
+                
                 listVal = listVal.split(' ')
+                
                 if imageName in self.imagesList:
                     self.annotations[imageName].append(listVal)
                 else:
@@ -68,13 +83,22 @@ class AnnotatedImageDataset(torch.utils.data.Dataset):
         return len(self.imagesList)
 
     def __getitem__(self, index):
-        annots = self.annotations[self.imagesList[index]]
-        i = random.randint(0,len(annots)-1)
-        return self.transform(Image.open(self.baseDir+self.imagesList[index])), annots[i], self.imagesList[index]
-
+        if random.random() > self.p: #take a positive caption
+            annots = self.annotations[self.imagesList[index]]
+            i = random.randint(0,len(annots)-1) #choose a random caption from the list of caption
+            image = Image.open(self.baseDir+self.imagesList[index])
+            return self.transform(image), annots[i], 1
+        else: #negative caption
+            c = random.randint(0, self.__len__()-1)
+            while c == index:
+	            c = random.randint(0, self.__len__()-1)
+            annots = self.annotations[self.imagesList[c]]
+            i = random.randint(0,len(annots)-1) #choose a random caption from the list of caption
+            image = Image.open(self.baseDir+self.imagesList[index])
+            return self.transform(image), annots[i], -1
 
 if __name__ == "__main__":
     print('Test datasets')
-    dataset = AnnotatedImageDataset("/data/flickr30k/results_20130124.token", '/data/flickr30k/flickr30k_images/')
+    dataset = AnnotatedImageDataset("../data/coco.annot", '/data/coco/train2014/')
     print("Nb images : ", len(dataset))
     print("First item : ", dataset[0])
