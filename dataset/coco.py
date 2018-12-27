@@ -15,7 +15,7 @@ def createFile(filename, fout):
     """
         Create a formated file for coco
         input : 
-        	json file with 'images' and 'annotations' categories
+        	json file with 'images' and 'annotations' categories (from coco download)
         output : 
         	text file with each line in the form : <image name> <caption>
     """
@@ -39,15 +39,6 @@ def createFile(filename, fout):
             else:           
             	fout.write(ids[idImage]+'\t'+annot['caption']+'\n')
 
-
-
-class CocoDataset(torch.utils.data.Dataset):
-    def __init__(self, directory, annotationFile, transform=transforms.ToTensor()):
-        super().__init__()
-
-
-    def __len__(self):
-        return len(self.images.keys())
 
 
 if __name__ == '__main__':
