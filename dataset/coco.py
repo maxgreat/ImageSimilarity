@@ -14,12 +14,15 @@ import json
 def createFile(filename, fout):
     """
         Create a formated file for coco
-        inout : json file with 'images' and 'annotations' categories
+        input : 
+        	json file with 'images' and 'annotations' categories
+        output : 
+        	text file with each line in the form : <image name> <caption>
     """
     l = json.load(open(filename))
     annotations = l['annotations']
     images = l['images']
-    ids = {}
+    ids = {} # dictionary image index -> image name
     countImages = {}
     for im in images:
         ids[im['id']] = im['file_name']
@@ -27,8 +30,14 @@ def createFile(filename, fout):
     with open(fout,'w') as fout:
         for i, annot in enumerate(annotations):
             print("%2.2f"% (i/len(annotations)*100), '\%', end='\r')
-            id = annot['image_id']
-            fout.write(ids[id]+'\t'+annot['caption']+'\n')
+            idImage = annot['image_id']
+            
+            # check for error in text
+            if '\n' in annot['caption']:
+            	newCaption = annot['caption'].replace('\n','')
+            	fout.write(ids[idImage]+'\t'+newCaption+'\n')
+            else:           
+            	fout.write(ids[idImage]+'\t'+annot['caption']+'\n')
 
 
 
@@ -42,4 +51,4 @@ class CocoDataset(torch.utils.data.Dataset):
 
 
 if __name__ == '__main__':
-    createFile('/data/coco/annotation/captions_train2014.json', '/data/coco/annotation/captions.txt')
+    createFile('/data/coco/annotation/captions_train2014.json', '/data/coco/annotation/captionsCorrect.txt')
