@@ -114,7 +114,8 @@ class DoubleNet(nn.Module):
         super().__init__()
         self.net1 = nn.DataParallel(net1)
         #self.net1 = net1
-        #self.net2 = nn.DataParallel(net2)
+        #torch.distributed.init_process_group(backend="nccl")
+        #self.net2 = nn.parallel.distributed.DistributedDataParallel(net2)
         self.net2 = net2
         self.norm = norm
 
@@ -157,10 +158,9 @@ def ResnetEmbedding():
 if __name__ == "__main__":
     print('Test model generation and forward')
     i = torch.rand(10,3,224,224).cuda()
-    t = torch.rand(10,300).cuda()
 
-    res = resnetExtraction().cuda()
-    imCap = ImageCaptionNet(res)
+    model = DoubleNet(resnetExtraction(),
+                     resnetExtraction())
 
-    o = imCap(i, t)
+    o = imCap(i, i)
     print(o)
