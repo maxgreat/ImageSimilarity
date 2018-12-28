@@ -32,11 +32,11 @@ def testModel(model, dataloader):
         #sim = f.cosine_similarity(output[0], output[1], -1)
         for i, s in enumerate(sim):
             if labels[i] > 0:
-                if s <= 0.5:
+                if s <= 1:
                     nbCorrect+=1
                 print('Similar distance :', float(s.detach()))
             else:
-                if s > 0.5:
+                if s > 1:
                     nbCorrect += 1
                 print('Different distance :', float(s.detach()))
     print('Correct : ', nbCorrect, '/', len(sim))
@@ -53,17 +53,18 @@ def train(model, save_output, nbepoch, learningrate, dataloader, dataloaderTest)
     """
     model = model.train().cuda()
 
-    criterion=EuclideanLoss(0.5).cuda()
+    criterion=EuclideanLoss(1).cuda()
     #criterion=CosineLoss(0.5).cuda()
 
     optimizer=optim.Adam([
                     {
                     'params': model.net2.gru.parameters(),
-                    'params': model.net1.module.layer4.parameters(),
+                    'params': model.net1.module.layer4.downsample.parameters()
                         },
                     {'params': model.net1.module.parameters(),
-                    'params':model.net2.embedding.parameters(), 'lr': 0.00005}
-                ], lr=0.0001)
+                    'params':model.net2.embedding.parameters(),
+                    'params': model.net1.module.layer4.parameters(), 'lr': 0.0}
+                ], lr=0.01)
 
     running_loss = 0
 
