@@ -58,13 +58,9 @@ def train(model, save_output, nbepoch, learningrate, dataloader, dataloaderTest)
 
     optimizer=optim.Adam([
                     {
-                    'params': model.net2.gru.parameters(),
-                    'params': model.net1.module.layer4.downsample.parameters()
-                        },
-                    {'params': model.net1.module.parameters(),
-                    'params':model.net2.embedding.parameters(),
-                    'params': model.net1.module.layer4.parameters(), 'lr': 0.0}
-                ], lr=0.01)
+                    'params': model.parameters(),
+                    }
+                ], lr=0.0005)
 
     running_loss = 0
 
@@ -88,7 +84,7 @@ def train(model, save_output, nbepoch, learningrate, dataloader, dataloaderTest)
             optimizer.step()
 
             running_loss += loss.data[0]
-            if b % 10 == 9: # print every 10 mini-batches
+            if b % 20 == 19: # print every 10 mini-batches
                 writer.add_scalar('data/loss', running_loss, b+(epoch*len(dataset)))
                 print('[%d, %5d] loss: %.3f' % (epoch+1, b+1, running_loss / 20))
                 running_loss = 0.0
@@ -135,6 +131,11 @@ if __name__ == "__main__":
     dataloaderTest = DataLoader(dataset=datasetTest, batch_size=args.batchSize,
                         shuffle=False, num_workers=multiprocessing.cpu_count(), drop_last=False, 
                         collate_fn=Datasets.collate_fn)
+                        
+    datasetTest2 = Datasets.AnnotatedImageDataset("data/test.annot", baseDir="/data/flickr30k/flickr30k_images/", p=1)
+    dataloaderTest2 = DataLoader(dataset=datasetTest2, batch_size=args.batchSize,
+                        shuffle=False, num_workers=multiprocessing.cpu_count(), drop_last=False, 
+                        collate_fn=Datasets.collate_fn)
 
     if args.resume:
         model = torch.load(args.resume)
@@ -144,4 +145,4 @@ if __name__ == "__main__":
                                 text_model.EncoderEmbedding())
     train(model=model, save_output=args.output,
             nbepoch=args.epoch,
-            learningrate=args.learningrate, dataloader=dataloader, dataloaderTest=dataloaderTest)
+            learningrate=args.learningrate, dataloader=dataloader, dataloaderTest=dataloaderTest2)

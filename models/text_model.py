@@ -28,7 +28,7 @@ class EncoderGRU(nn.Module):
 class EncoderEmbedding(nn.Module):
     def __init__(self):
         super(EncoderEmbedding, self).__init__()
-        self.nbLayer = 4
+        self.nbLayer = 2
         self.hidden_size = 2048
         self.embedding = torch.load('/workspace/imageSimilarity/embedding/embedding.save').cuda()
         self.gru = nn.GRU(300, 2048, num_layers=self.nbLayer,  batch_first=True)
