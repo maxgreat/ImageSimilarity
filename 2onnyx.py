@@ -8,12 +8,11 @@ import torchvision
 #import uff
 import numpy as np
 
-from models import models
-
+import models.models as md
 
 
 def weldon2resnet(name):
-    model = models.ResNet_weldon('aa',weldon_pretrained_path=name)
+    model = md.ResNet_weldon(weldon_pretrained_path=name)
     model = model.base_layer
     model.add_module('8', torch.nn.AvgPool2d( (7,7), (1,1) ) )
     modules = list(model.children())
@@ -21,17 +20,17 @@ def weldon2resnet(name):
     return model
     
 def toonnx(model, saveName):
-    dummy_input = torch.randn(args.batch_size, 3, 224, 224)
-    print('Output size:', model(dummy_input).shape)
+    dummy_input = torch.randn(1000, 3, 224, 224)
+    #print('Output size:', model(dummy_input).shape)
     output_names = [ "output"]
-    torch.onnx.export(model, dummy_input, args.save_name, verbose=True, output_names=output_names)
+    torch.onnx.export(model, dummy_input, saveName, verbose=True, output_names=output_names)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--model_name", default='data/pretrained_classif_152_2400.pth.tar')
-    parser.add_argument("--save_name", default='model.onnx')
+    parser.add_argument("--save_name", default='resnet.onnx')
 
 
     args = parser.parse_args()
