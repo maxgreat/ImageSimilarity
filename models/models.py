@@ -267,10 +267,10 @@ class WeldonPooling(nn.Module):  #
 
 class ResNet_weldon(nn.Module):
 
-    def __init__(self, args, pretrained=True, weldon_pretrained_path=None):
+    def __init__(self, pretrained=True, weldon_pretrained_path=None):
         super(ResNet_weldon, self).__init__()
 
-        resnet = models.resnet152(pretrained=pretrained)
+        resnet = torchvision.models.resnet152(pretrained=pretrained)
 
         self.base_layer = nn.Sequential(*list(resnet.children())[:-2])
         self.spaConv = nn.Conv2d(2048, 2400, 1,)
