@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as f
 
 class EuclideanLoss(nn.Module):
     def __init__(self, margin=0.5):
@@ -27,9 +28,9 @@ class CosineLoss(nn.Module):
         dists = f.cosine_similarity(x,y)
         for i, eq in enumerate(p):
             if eq == 1:
-                s += 1-dists[i] #equal means == 1
+                s += max(0, 1-self.margin-dists[i]) #equal means == 1
             else:
-                s+= max(0, dists[i] - self.margin) #similarity must be smaller than margin
+                s+= max(0, dists[i] - (1-self.margin)) #similarity must be smaller than margin
         return s
 
 class EuclideanTriple(nn.Module):

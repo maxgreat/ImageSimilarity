@@ -15,12 +15,28 @@ import sys
 import multiprocessing
 import numpy as np
 
-from utils.loss import EuclideanLoss, CosineLoss, EuclideanTriple
+from utils.loss import EuclideanLoss, CosineLoss, EuclideanTriple, ContrastiveLoss, HardNegativeContrastiveLoss
 
 from tensorboardX import SummaryWriter
 
 
-def testModel(model, dataloader):
+
+def cosine_sim(A, B):
+    img_norm = np.linalg.norm(A, axis=1)
+    caps_norm = np.linalg.norm(B, axis=1)
+
+    scores = np.dot(A, B.T)
+
+    norms = np.dot(np.expand_dims(img_norm, 1),
+                   np.expand_dims(caps_norm.T, 1).T)
+
+    scores = (scores / norms)
+
+    return scores
+
+
+
+def testModel(model, dataloader, margin=0.2):
     model = model.eval()
     for b, batch in enumerate(dataloader):
         output = model(batch[0].cuda(), batch[1].cuda())
@@ -30,15 +46,16 @@ def testModel(model, dataloader):
         pdist = nn.PairwiseDistance()
         sim = pdist(output[0], output[1])
         #sim = f.cosine_similarity(output[0], output[1], -1)
+        #sim = cosine_sim(np.array(output[0].detach()), np.array(output[1].detach()))
         for i, s in enumerate(sim):
             if labels[i] > 0:
-                if s <= 1:
+                if s <= margin:
                     nbCorrect+=1
-                print('Similar distance :', float(s.detach()))
+                print('Similar distance :', float(s))
             else:
-                if s > 1:
+                if s > margin:
                     nbCorrect += 1
-                print('Different distance :', float(s.detach()))
+                print('Different distance :', float(s))
     print('Correct : ', nbCorrect, '/', len(sim))
     model = model.train()
     return nbCorrect
@@ -47,20 +64,24 @@ def testModel(model, dataloader):
 
 
 
-def train(model, save_output, nbepoch, learningrate, dataloader, dataloaderTest):
+def train(model, save_output, nbepoch, dataloader, dataloaderTest):
     """
         Train a given model for nbepoch epochs on the given dataset
     """
     model = model.train().cuda()
 
-    criterion=EuclideanLoss(1).cuda()
-    #criterion=CosineLoss(0.5).cuda()
-
+    criterion=EuclideanLoss(0.2).cuda()
+    #criterion=CosineLoss(0.2).cuda()
+    #criterion=ContrastiveLoss()
+    #criterion=HardNegativeContrastiveLoss()
+    
     optimizer=optim.Adam([
                     {
-                    'params': model.parameters(),
+                    'params': model.net2.gru.parameters(),
+                    #'params': model.net1.module.layer4.parameters(),
+                    #'params': model.parameters()
                     }
-                ], lr=0.0005)
+                ], lr=0.1)
 
     running_loss = 0
 
@@ -69,7 +90,7 @@ def train(model, save_output, nbepoch, learningrate, dataloader, dataloaderTest)
     score = testModel(model, dataloaderTest)
     writer.add_scalar('data/score', score, 0)
     for epoch in range(nbepoch):
-        print("Epoch ", epoch, "/", nbepoch)
+        print("Epoch ", epoch+1, "/", nbepoch)
         for b, batch in enumerate(dataloader):
             if b%2 == 1:
                 print("%2.2f"% (b/len(dataloader)*100), '\%', end='\r')
@@ -80,10 +101,12 @@ def train(model, save_output, nbepoch, learningrate, dataloader, dataloaderTest)
             optimizer.zero_grad()
             labels = batch[2].type(torch.float32).cuda()
             loss = criterion(output[0], output[1], labels)
-            loss.backward()
-            optimizer.step()
+            #loss = criterion(output[0], output[1])
+            if loss > 0:
+                loss.backward()
+                optimizer.step()
 
-            running_loss += loss.data[0]
+                running_loss += loss.data[0]
             if b % 20 == 19: # print every 10 mini-batches
                 writer.add_scalar('data/loss', running_loss, b+(epoch*len(dataset)))
                 print('[%d, %5d] loss: %.3f' % (epoch+1, b+1, running_loss / 20))
@@ -110,18 +133,19 @@ if __name__ == "__main__":
     parser.add_argument('-b', '--batchSize', help="optional - batchSize - default 32",
                         type=int, default=128)
     parser.add_argument('-r', '--resume', help="optional - resume training with the given filename")
-    parser.add_argument('-l', '--learningrate', help="optional - learning rate value - default 0.01",
-                        type=float, default=0.01)
     parser.add_argument('-d', '--dataset', help="optional - file with dataset",
                         default="data/coco.annot")
     parser.add_argument('--baseDir', help="optional - directory for images",
                         default="/data/coco/train2014/")
+    parser.add_argument('-p', '--probFalse', help="optional - probabilty of picking up negative example during training",
+                        default=0.5, type=float)
     args = parser.parse_args()
 
+    
 
     
     #define train dataset and dataloader
-    dataset = Datasets.AnnotatedImageDataset(args.dataset, args.baseDir)
+    dataset = Datasets.AnnotatedImageDataset(args.dataset, args.baseDir, p=args.probFalse)
     dataloader = DataLoader(dataset=dataset, batch_size=args.batchSize,
                         shuffle=True, num_workers=multiprocessing.cpu_count(), drop_last=True,
                         collate_fn=Datasets.collate_fn)
@@ -132,7 +156,7 @@ if __name__ == "__main__":
                         shuffle=False, num_workers=multiprocessing.cpu_count(), drop_last=False, 
                         collate_fn=Datasets.collate_fn)
                         
-    datasetTest2 = Datasets.AnnotatedImageDataset("data/test.annot", baseDir="/data/flickr30k/flickr30k_images/", p=1)
+    datasetTest2 = Datasets.AnnotatedImageDataset("data/test.annot", baseDir="/data/flickr30k/flickr30k_images/", p=0.5)
     dataloaderTest2 = DataLoader(dataset=datasetTest2, batch_size=args.batchSize,
                         shuffle=False, num_workers=multiprocessing.cpu_count(), drop_last=False, 
                         collate_fn=Datasets.collate_fn)
@@ -144,5 +168,4 @@ if __name__ == "__main__":
         model = models.DoubleNet(models.resnetExtraction(),
                                 text_model.EncoderEmbedding())
     train(model=model, save_output=args.output,
-            nbepoch=args.epoch,
-            learningrate=args.learningrate, dataloader=dataloader, dataloaderTest=dataloaderTest2)
+            nbepoch=args.epoch, dataloader=dataloader, dataloaderTest=dataloaderTest2)

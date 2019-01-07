@@ -51,7 +51,7 @@ class ResnetExtraction(torchvision.models.ResNet):
         #super(ResnetExtraction, self).__init__(block, layers)
         super().__init__(block, layers)
         self.size=size
-        self.fc = nn.Linear(2048, size)
+        self.fc = None
 
     def forward(self, x):
         x = self.conv1(x)
@@ -66,9 +66,6 @@ class ResnetExtraction(torchvision.models.ResNet):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        if not self.size == 2048:
-            x = self.fc(x)
-
         return x
 
 def resnetExtraction(pretrained=True, size=2048):
