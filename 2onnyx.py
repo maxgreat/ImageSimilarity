@@ -8,10 +8,12 @@ import torchvision
 #import uff
 import numpy as np
 
+from models import models
+
 
 
 def weldon2resnet(name):
-    model = misc.model.ResNet_weldon('aa',weldon_pretrained_path=name)
+    model = models.ResNet_weldon('aa',weldon_pretrained_path=name)
     model = model.base_layer
     model.add_module('8', torch.nn.AvgPool2d( (7,7), (1,1) ) )
     modules = list(model.children())
