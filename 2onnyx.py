@@ -10,31 +10,34 @@ import numpy as np
 
 
 
-def weldon2resnet():
-    model = misc.model.ResNet_weldon('aa',weldon_pretrained_path='data/pretrained_classif_152_2400.pth.tar')
+def weldon2resnet(name):
+    model = misc.model.ResNet_weldon('aa',weldon_pretrained_path=name)
     model = model.base_layer
     model.add_module('8', torch.nn.AvgPool2d( (7,7), (1,1) ) )
+    modules = list(model.children())
+    model = Sequential(*modules)
+    return model
     
+def toonnx(model, saveName):
+    dummy_input = torch.randn(args.batch_size, 3, 224, 224)
+    print('Output size:', model(dummy_input).shape)
+    output_names = [ "output"]
+    torch.onnx.export(model, dummy_input, args.save_name, verbose=True, output_names=output_names)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model_name", required=True)
+    parser.add_argument("--model_name", default='data/pretrained_classif_152_2400.pth.tar')
     parser.add_argument("--save_name", default='model.onnx')
-    parser.add_argument("--num_workers", default=8, type=int)
-    parser.add_argument("--batch_size", type=int, default=1000)
 
 
     args = parser.parse_args()
+    
+    model = weldon2resnet(args.model_name)
+    toonnx(model, args.save_name)
+    
+    
 
-    model= torch.load(args.model_name)
-    #model = pretrainedmodels.__dict__[model_name](num_classes=1000, pretrained='imagenet')
-    model = model.module
-    modules = list(model.children())[:-1]
-    model = Sequential(*modules)
-    dummy_input = torch.randn(args.batch_size, 3, 224, 224)
-    print(model(dummy_input).shape)
-    output_names = [ "output"]
-    torch.onnx.export(model, dummy_input, args.save_name, verbose=True, output_names=output_names)
+    
 
