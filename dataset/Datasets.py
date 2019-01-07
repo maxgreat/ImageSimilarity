@@ -87,6 +87,8 @@ class AnnotatedImageDataset(torch.utils.data.Dataset):
     def __init__(self, filename, baseDir='./', maxLength=20, p=0.5):
         self.transform =transforms.Compose(
                             (
+                            transforms.Normalize(
+                                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                             transforms.Resize(256),
                             transforms.RandomCrop(224),
                             transforms.ToTensor())
