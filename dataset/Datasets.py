@@ -87,11 +87,11 @@ class AnnotatedImageDataset(torch.utils.data.Dataset):
     def __init__(self, filename, baseDir='./', maxLength=20, p=0.5):
         self.transform =transforms.Compose(
                             (
-                            transforms.Normalize(
-                                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                             transforms.Resize(256),
                             transforms.RandomCrop(224),
-                            transforms.ToTensor())
+                            transforms.ToTensor(),
+                            transforms.Normalize(
+                                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
                             )
         self.imagesList = set()
         self.annotations = {}
@@ -130,17 +130,44 @@ class AnnotatedImageDataset(torch.utils.data.Dataset):
         im = self._openImage(index)
         if random.random() > self.p: #take a positive caption
             annots = self.annotations[self.imagesList[index]]
-            p = 1
+            p = 0
             
         else: #negative caption
             c = random.randint(0, self.__len__()-1)
             while c == index:
 	            c = random.randint(0, self.__len__()-1)
             annots = self.annotations[self.imagesList[c]]
-            p = -1
+            p = 1
             
         i = random.randint(0,len(annots)-1) #choose a random caption from the list of caption
         return im, torch.LongTensor(annots[i]), p
+        
+        
+class openImage(nn.Module):
+    def __init__(self, imageDirectory, annotationFile):
+        super().__init__()
+        self.directory = imageDirectory
+        self.annotation = open(annotationFile).read().splitlines()
+        self.transform =transforms.Compose(
+                            (
+                            transforms.Resize(256),
+                            transforms.RandomCrop(224),
+                            transforms.ToTensor(),
+                            transforms.Normalize(
+                                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
+                            )
+        
+        
+    def __len__(self):
+        return len(self.annotation)
+        
+    def __getitem__(self, index):
+        000002b66c9c498e,verification,/m/010l12,0
+        imName, _, idClass, p = self.annotation[index]
+        img = Image.open(self.directory + imName + '.jpg')
+        if not img.mode == 'RGB':
+            img = img.convert("RGB")
+        
 
 if __name__ == "__main__":
     print('Test datasets')
