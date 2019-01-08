@@ -36,7 +36,7 @@ def cosine_sim(A, B):
 
 
 
-def testModel(model, dataloader, margin=0.2):
+def testModel(model, dataloader, margin=2.0):
     model = model.eval()
     for b, batch in enumerate(dataloader):
         output = model(batch[0].cuda(), batch[1].cuda())
@@ -48,7 +48,7 @@ def testModel(model, dataloader, margin=0.2):
         #sim = f.cosine_similarity(output[0], output[1], -1)
         #sim = cosine_sim(np.array(output[0].detach()), np.array(output[1].detach()))
         for i, s in enumerate(sim):
-            if labels[i] > 0:
+            if labels[i] == 0:
                 if s <= margin:
                     nbCorrect+=1
                 print('Similar distance :', float(s))
@@ -70,27 +70,27 @@ def train(model, save_output, nbepoch, dataloader, dataloaderTest):
     """
     model = model.train().cuda()
 
-    #criterion=EuclideanLoss(0.2).cuda()
+    criterion=EuclideanLoss(2.0).cuda()
     #criterion=CosineLoss(0.2).cuda()
     #criterion=ContrastiveLoss()
     #criterion=HardNegativeContrastiveLoss()
-    criterion = ContractiveLoss2().cuda()
+    #criterion = ContractiveLoss2().cuda()
     
-    
+    t = True
     model.net2.embedding.requires_grad = False
-    model.net1.module.conv1.requires_grad = False
-    model.net1.module.layer1.require_grad = False
-    model.net1.module.layer2.require_grad = False
-    model.net1.module.layer3.require_grad = False
+    model.net1.module.conv1.requires_grad = t
+    model.net1.module.layer1.require_grad = t
+    model.net1.module.layer2.require_grad = t
+    model.net1.module.layer3.require_grad = t
     
     
     optimizer=optim.Adam([
                     {
-                    'params': model.net2.gru.parameters(),
-                    'params': model.net1.module.layer4.parameters(),
-                    #'params': model.parameters()
+                    #'params': model.net2.gru.parameters(),
+                    #'params': model.net1.module.layer4.parameters(),
+                    'params': model.parameters()
                     }
-                ], lr=0.001)
+                ], lr=0.0005)
 
     running_loss = 0
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                         default='data/')
     parser.add_argument('-e', '--epoch', help="optional - number of epoch to do - default 5",
                         type=int, default=5)
-    parser.add_argument('-b', '--batchSize', help="optional - batchSize - default 32",
+    parser.add_argument('-b', '--batchSize', help="optional - batchSize - default 128",
                         type=int, default=128)
     parser.add_argument('-r', '--resume', help="optional - resume training with the given filename")
     parser.add_argument('-d', '--dataset', help="optional - file with dataset",

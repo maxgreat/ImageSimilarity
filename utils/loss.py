@@ -8,15 +8,8 @@ class EuclideanLoss(nn.Module):
         self.margin=margin
 
     def forward(self,x,y,p):
-        s = 0
-        pdist = nn.PairwiseDistance()
-        dists = pdist(x,y)
-        for i, eq in enumerate(p):
-            if eq == 1:
-                s += dists[i]
-            else:
-                s+= max(0, self.margin - dists[i])
-        return s
+        dists = f.pairwise_distance(x,y)
+        return torch.sum((1-p)*dists + p*torch.clamp( (self.margin-dists), min=0.0))
 
 class CosineLoss(nn.Module):
     def __init__(self, margin=0.5):

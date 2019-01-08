@@ -19,20 +19,26 @@ def weldon2resnet(name):
     model = Sequential(*modules)
     return model
     
+    
 def toonnx(model, saveName):
     dummy_input = torch.randn(20, 3, 224, 224)
-    #print('Output size:', model(dummy_input).shape)
+    print('Output size:', model(dummy_input).shape)
     output_names = [ "output"]
     torch.onnx.export(model, dummy_input, saveName, verbose=True, output_names=output_names)
     
+    
 def text2onnx(model, saveName):
-    dummy_input = torch.randn(20,620)
+    dummy_input = torch.randn(5,10,620)
+    print('Output text:', model(dummy_input).shape)
+    output_names = [ "output"]
+    torch.onnx.export(model, dummy_input, saveName, verbose=True, output_names=output_names)
+    
     
 def loadFullNet(modelPath):
-    je = models.joint_embedding()
+    je = md.joint_embedding()
     a = torch.load(modelPath)
     je.load_state_dict(a['state_dict'])
-    imageEmbed = ie.module.base_layer[0]
+    imageEmbed = Sequential(*list(je.img_emb.module.children()))
     rnn = je.cap_emb
     return imageEmbed, rnn
 
@@ -52,8 +58,8 @@ if __name__ == '__main__':
         model = weldon2resnet(args.model_name)
     else:
         model, textmodel = loadFullNet(args.model_name)
+        #text2onnx(textmodel, "textEmbed.onnx")
     toonnx(model, args.save_name)
-    
     
 
     

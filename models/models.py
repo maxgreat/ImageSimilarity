@@ -334,14 +334,10 @@ class SruEmb(nn.Module):
             max_length - input.data.eq(0).sum(1, keepdim=True).squeeze())
         return lengths
 
-    def forward(self, input, lengths=None):
-        if lengths is None:
-            lengths = self._process_lengths(input)
+    def forward(self, input):
         x = input.permute(1, 0, 2)
         x, hn = self.rnn(x)
         x = x.permute(1, 0, 2)
-        if lengths:
-            x = self._select_last(x, lengths)
         return x
 
 
@@ -349,7 +345,7 @@ class img_embedding(nn.Module):
 
     def __init__(self):
         super(img_embedding, self).__init__()
-        model_weldon2 = ResNet_weldon(pretrained=True, weldon_pretrained_path="WELDON_CLASSIF_PRETRAINED")
+        model_weldon2 = ResNet_weldon(pretrained=False)
 
         self.base_layer = nn.Sequential(*list(model_weldon2.children())[:-1])
 

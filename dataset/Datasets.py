@@ -143,7 +143,7 @@ class AnnotatedImageDataset(torch.utils.data.Dataset):
         return im, torch.LongTensor(annots[i]), p
         
         
-class openImage(nn.Module):
+class openImage(torch.utils.data.Dataset):
     def __init__(self, imageDirectory, annotationFile):
         super().__init__()
         self.directory = imageDirectory
@@ -162,7 +162,6 @@ class openImage(nn.Module):
         return len(self.annotation)
         
     def __getitem__(self, index):
-        000002b66c9c498e,verification,/m/010l12,0
         imName, _, idClass, p = self.annotation[index]
         img = Image.open(self.directory + imName + '.jpg')
         if not img.mode == 'RGB':
