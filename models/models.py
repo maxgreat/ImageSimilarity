@@ -207,7 +207,7 @@ class WeldonPooling(nn.Module):  #
         x = input.view(self.batchSize, self.numChannels, self.h * self.w)
 
         # sort scores by decreasing order
-        scoreSorted, indices = torch.sort(x, x.dim() - 1, True)
+        scoreSorted, indices = torch.topk(x, k=nMax, dim=x.dim() - 1)
 
         # compute top max
         self.indicesMax = indices[:, :, 0:nMax]
@@ -215,11 +215,14 @@ class WeldonPooling(nn.Module):  #
         self.output = self.output.div(nMax)
 
         # compute top min
+        scoreSorted, indices = torch.topk(x*-1, k=nMin, dim=x.dim() - 1)
+        scoreSorted = scoreSorted * -1
+
         if nMin > 0:
             self.indicesMin = indices[
-                :, :, self.h * self.w - nMin:self.h * self.w]
+                :, :, 0:nMin]
             yMin = torch.sum(
-                scoreSorted[:, :, self.h * self.w - nMin:self.h * self.w], 2, keepdim=True).div(nMin)
+                scoreSorted[:, :, 0:nMin], 2, keepdim=True).div(nMin)
             self.output = torch.add(self.output, yMin)
 
         if input.dim() == 4:
@@ -263,6 +266,7 @@ class WeldonPooling(nn.Module):  #
                 self.numChannels, self.h, self.w)
 
         return self.gradInput
+
 
 
 class ResNet_weldon(nn.Module):
