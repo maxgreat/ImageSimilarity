@@ -20,22 +20,38 @@ def weldon2resnet(name):
     return model
     
 def toonnx(model, saveName):
-    dummy_input = torch.randn(1000, 3, 224, 224)
+    dummy_input = torch.randn(20, 3, 224, 224)
     #print('Output size:', model(dummy_input).shape)
     output_names = [ "output"]
     torch.onnx.export(model, dummy_input, saveName, verbose=True, output_names=output_names)
+    
+def text2onnx(model, saveName):
+    dummy_input = torch.randn(20,620)
+    
+def loadFullNet(modelPath):
+    je = models.joint_embedding()
+    a = torch.load(modelPath)
+    je.load_state_dict(a['state_dict'])
+    imageEmbed = ie.module.base_layer[0]
+    rnn = je.cap_emb
+    return imageEmbed, rnn
+
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model_name", default='data/pretrained_classif_152_2400.pth.tar')
-    parser.add_argument("--save_name", default='resnet.onnx')
+    parser.add_argument("-m", "--model_name", default='data/pretrained_classif_152_2400.pth.tar')
+    parser.add_argument("-s", "--save_name", default='resnet.onnx')
+    parser.add_argument("-t", "--model_type", help="Should be weldon or full", default="weldon")
 
 
     args = parser.parse_args()
     
-    model = weldon2resnet(args.model_name)
+    if args.model_type == "weldon":
+        model = weldon2resnet(args.model_name)
+    else:
+        model, textmodel = loadFullNet(args.model_name)
     toonnx(model, args.save_name)
     
     

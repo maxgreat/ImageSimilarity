@@ -15,7 +15,7 @@ import sys
 import multiprocessing
 import numpy as np
 
-from utils.loss import EuclideanLoss, CosineLoss, EuclideanTriple, ContrastiveLoss, HardNegativeContrastiveLoss
+from utils.loss import EuclideanLoss, CosineLoss, EuclideanTriple, ContrastiveLoss, HardNegativeContrastiveLoss, ContractiveLoss2
 
 from tensorboardX import SummaryWriter
 
@@ -70,18 +70,27 @@ def train(model, save_output, nbepoch, dataloader, dataloaderTest):
     """
     model = model.train().cuda()
 
-    criterion=EuclideanLoss(0.2).cuda()
+    #criterion=EuclideanLoss(0.2).cuda()
     #criterion=CosineLoss(0.2).cuda()
     #criterion=ContrastiveLoss()
     #criterion=HardNegativeContrastiveLoss()
+    criterion = ContractiveLoss2().cuda()
+    
+    
+    model.net2.embedding.requires_grad = False
+    model.net1.module.conv1.requires_grad = False
+    model.net1.module.layer1.require_grad = False
+    model.net1.module.layer2.require_grad = False
+    model.net1.module.layer3.require_grad = False
+    
     
     optimizer=optim.Adam([
                     {
                     'params': model.net2.gru.parameters(),
-                    #'params': model.net1.module.layer4.parameters(),
+                    'params': model.net1.module.layer4.parameters(),
                     #'params': model.parameters()
                     }
-                ], lr=0.1)
+                ], lr=0.001)
 
     running_loss = 0
 
