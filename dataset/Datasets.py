@@ -52,7 +52,10 @@ class ImageDataset(torch.utils.data.Dataset):
         self.transform = transform
 
     def __getitem__(self, index):
-        return self.transform(Image.open(self.imagesList[index])), self.imagesList[index]
+        im = Image.open(self.baseDir + self.imagesList[index])
+        if not im.mode == 'RGB':
+            im = im.convert("RGB")
+        return self.transform(im), self.imagesList[index]
 
     def __len__(self):
         return len(self.imagesList)

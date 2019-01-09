@@ -4,8 +4,6 @@ import torch.utils.model_zoo as model_zoo
 import torch.nn as nn
 import torch.nn.functional as f
 
-import fastText
-
 from models import model_utils
 #import model_utils
 
