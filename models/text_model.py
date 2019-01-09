@@ -28,10 +28,10 @@ class EncoderGRU(nn.Module):
 class EncoderEmbedding(nn.Module):
     def __init__(self):
         super(EncoderEmbedding, self).__init__()
-        self.nbLayer = 4
+        self.nbLayer = 2
         self.hidden_size = 2048
         self.embedding = torch.load('/workspace/imageSimilarity/embedding/embedding.save').cuda()
-        self.gru = nn.GRU(300, 2048, num_layers=self.nbLayer, batch_first=True, dropout=0.25, bidirectional=False)
+        self.gru = nn.GRU(300, 2048, num_layers=self.nbLayer, batch_first=True, dropout=0.25, bidirectional=True)
         
 
     def forward(self, input):
@@ -40,7 +40,7 @@ class EncoderEmbedding(nn.Module):
         return self.gru(input, hidden.cuda())[1][0]
 
     def initHidden(self, batchSize):
-        return torch.zeros(self.nbLayer, batchSize, self.hidden_size)
+        return torch.zeros(self.nbLayer*2, batchSize, self.hidden_size)
 
 
 if __name__ == '__main__':

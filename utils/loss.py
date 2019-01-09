@@ -9,7 +9,8 @@ class EuclideanLoss(nn.Module):
 
     def forward(self,x,y,p):
         dists = f.pairwise_distance(x,y)
-        return torch.sum((1-p)*dists + p*torch.clamp( (self.margin-dists), min=0.0))
+        return torch.mean((1-p)*dists + p*torch.clamp( (self.margin-dists), min=0.0))
+        #return torch.sum((1-p)*dists + p*torch.clamp( (self.margin-dists), min=0.0))
 
 class CosineLoss(nn.Module):
     def __init__(self, margin=0.5):
@@ -19,12 +20,7 @@ class CosineLoss(nn.Module):
     def forward(self,x,y,p):
         s = 0
         dists = f.cosine_similarity(x,y)
-        for i, eq in enumerate(p):
-            if eq == 1:
-                s += max(0, 1-self.margin-dists[i]) #equal means == 1
-            else:
-                s+= max(0, dists[i] - (1-self.margin)) #similarity must be smaller than margin
-        return s
+        return torch.mean((1-p)*dists + p*torch.clamp( (self.margin-dists), min=0.0))
 
 class EuclideanTriple(nn.Module):
     def __init__(self, margin=0.5):

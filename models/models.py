@@ -9,64 +9,14 @@ import fastText
 from models import model_utils
 #import model_utils
 
-class AlexNetExtraction(nn.Module):
 
-    def __init__(self, features_size=4096):
-        super(AlexNetExtraction, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
-            #nn.BatchNorm2d(64,eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(64, 192, kernel_size=5, padding=2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(192, 384, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(384, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-        )
-        self.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(256 * 6 * 6, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, features_size)
-        )
-        model_utils.copyParameters(self, torchvision.models.alexnet(pretrained=True))
-
+class viewModule(nn.Module):
+    def __init__(self):
+        super(viewModule,self).__init__()
+        
     def forward(self, x):
-        x = self.features(x)
-        x = x.view(x.size(0), 256 * 6 * 6)
-        x = self.classifier(x)
-        return x
-
-
-class ResnetExtraction(torchvision.models.ResNet):
-
-    def __init__(self, block, layers, size=2048):
-        #super(ResnetExtraction, self).__init__(block, layers)
-        super().__init__(block, layers)
-        self.size=size
-        self.fc = None
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        return x
+        s = x.shape
+        return x.view(x.shape[0], 2048)
 
 def resnetExtraction(pretrained=True, size=2048):
     """Constructs a ResNet-152 model.
@@ -74,12 +24,12 @@ def resnetExtraction(pretrained=True, size=2048):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResnetExtraction(torchvision.models.resnet.Bottleneck, [3, 8, 36, 3], size=size)
-    if pretrained:
-        model_utils.copyResNet(model, torchvision.models.resnet152(pretrained=True))
-        #model.load_state_dict(model_zoo.load_url('https://download.pytorch.org/models/resnet152-b121ed2d.pth'))
+    resnet = torchvision.models.resnet152(pretrained=True)
+    layers = list(resnet.children())[:-1]
+    layers.append(viewModule())
+    net = nn.Sequential(*layers)
 
-    return model
+    return net
 
 
 
@@ -146,13 +96,7 @@ class TripletNet(nn.Module):
         self.net1 = doubleNet.net1
         self.net2 = doubleNet.net2
 
-def ResnetEmbedding():
-    embed = nn.EmbeddingBag(99999,300)
-    #embed = torch.load('/workspace/imageSimilarity/embedding/embedding.save')
-    net = DoubleNet(resnetExtraction(size=300), embed)
-    return net
-    
-    
+
     
 class WeldonPooling(nn.Module):  #
     # Pytorch implementation of WELDON pooling
@@ -292,6 +236,13 @@ class ResNet_weldon(nn.Module):
                 self.load_state_dict(state_di)
             except Exception:
                 print("Error when loading pretrained resnet weldon")
+
+    def toResnet(self):
+        layers = list(self.base_layer.children())[:-1]
+        l = len(layers)
+        net = nn.Sequential(*layers)
+        #net.add_module(str(l+1), n)
+
 
     def forward(self, x):
         x = self.base_layer(x)

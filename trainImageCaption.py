@@ -70,18 +70,18 @@ def train(model, save_output, nbepoch, dataloader, dataloaderTest):
     """
     model = model.train().cuda()
 
-    criterion=EuclideanLoss(2.0).cuda()
+    criterion=EuclideanLoss(1.0).cuda()
     #criterion=CosineLoss(0.2).cuda()
     #criterion=ContrastiveLoss()
     #criterion=HardNegativeContrastiveLoss()
     #criterion = ContractiveLoss2().cuda()
     
-    t = True
-    model.net2.embedding.requires_grad = False
-    model.net1.module.conv1.requires_grad = t
-    model.net1.module.layer1.require_grad = t
-    model.net1.module.layer2.require_grad = t
-    model.net1.module.layer3.require_grad = t
+    #t = False
+    #model.net2.embedding.requires_grad = True
+    #model.net1.module.conv1.requires_grad = t
+    #model.net1.module.layer1.require_grad = t
+    #model.net1.module.layer2.require_grad = t
+    #model.net1.module.layer3.require_grad = t
     
     
     optimizer=optim.Adam([
@@ -90,7 +90,7 @@ def train(model, save_output, nbepoch, dataloader, dataloaderTest):
                     #'params': model.net1.module.layer4.parameters(),
                     'params': model.parameters()
                     }
-                ], lr=0.0005)
+                ], lr=0.000001)
 
     running_loss = 0
 

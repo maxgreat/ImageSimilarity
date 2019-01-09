@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('input', help="filename with text to convert")
 	parser.add_argument('output', help="output filename")
-	parser.add_argument('-v', '--vocab', help="vocab file", default='vocab.save')
+	parser.add_argument('-v', '--vocab', help="vocab file", default='data/vocab.save')
 	args = parser.parse_args()
 	
 	convertFile(args.input, args.output, args.vocab)
