@@ -37,8 +37,9 @@ if __name__ == "__main__":
     model_state = torch.load(args.model_path)
     model = models.joint_embedding()
     model.load_state_dict(model_state['state_dict'])
+    model = model.eval()
     embed = np.load(args.utable, encoding='latin1')
     
     dico = _open_dict(args.dictionary)
-    print(encode_sentence(args.text, model.cap_emb,embed, dico).shape)
+    print(encode_sentence(args.text, model.cap_emb,embed, dico))
     
