@@ -10,6 +10,8 @@ import random
 from torch.utils.data import DataLoader
 import multiprocessing
 
+import os.path
+
 
 def collate_fn(data):
     """Creates mini-batch tensors from the list of tuples (image, caption).
@@ -147,10 +149,15 @@ class AnnotatedImageDataset(torch.utils.data.Dataset):
         
         
 class openImage(torch.utils.data.Dataset):
-    def __init__(self, imageDirectory, annotationFile):
+    def __init__(self, imageDirectory="/data/train/", annotationFile="/data/train-annotations-human-imagelabels.csv", classDictionary="/data/class-descriptions.csv"):
         super().__init__()
         self.directory = imageDirectory
-        self.annotation = open(annotationFile).read().splitlines()
+        self.annotation = open(annotationFile).read().splitlines()[1:]
+        self.classDictionary = [ l.split(',')[:2] for l in open(classDictionary).read().splitlines() ]
+        for i in range(len(self.classDictionary)):
+            if len(self.classDictionary[i]) != 2:
+                print(self.classDictionary[i])
+        self.classDictionary = {w:c for w,c in self.classDictionary}
         self.transform =transforms.Compose(
                             (
                             transforms.Resize(256),
@@ -165,21 +172,26 @@ class openImage(torch.utils.data.Dataset):
         return len(self.annotation)
         
     def __getitem__(self, index):
-        imName, _, idClass, p = self.annotation[index]
-        img = Image.open(self.directory + imName + '.jpg')
-        if not img.mode == 'RGB':
-            img = img.convert("RGB")
+        imName, _, idClass, p = self.annotation[index].split(',')
+        if os.path.exists(self.directory + imName + '.jpg'):
+            img = Image.open(self.directory + imName + '.jpg')
+            if not img.mode == 'RGB':
+                img = img.convert("RGB")
+        else:
+            print(self.directory + imName + '.jpg does not exist')
+            return torch.zeros(3,224,224), 'UNK', 0
+        return self.transform(img), self.classDictionary[idClass], p
+        
         
 
 if __name__ == "__main__":
     print('Test datasets')
-    dataset = AnnotatedImageDataset("../data/coco.annot", '/data/coco/train2014/')
+    dataset = openImage()
     print("Nb images : ", len(dataset))
     print("First item : ", dataset[0])
     
     dataloader = DataLoader(dataset=dataset, batch_size=80,
-                        shuffle=True, num_workers=multiprocessing.cpu_count(), drop_last=True,
-                        collate_fn=collate_fn)
+                        shuffle=True, num_workers=multiprocessing.cpu_count(), drop_last=True)
     
     for b, batch in enumerate(dataloader):
         print("%2.2f"% (b/len(dataloader)*100), '\%', end='\r')

@@ -22,7 +22,9 @@ def encode_sentence(sent, model, embed, dico):
             sent_in[0, i] = torch.from_numpy(embed[dico[w]])
         else:
             sent_in[0, i] = torch.from_numpy(embed[dico["UNK"]])
-    return model(sent_in)[0][-1]
+    x_caps = model(sent_in)[0][-1]
+    x_caps = x_caps / torch.norm(x_caps, 2, dim=0, keepdim=True).expand_as(x_caps)
+    return x_caps
 
 
 if __name__ == "__main__":
